@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<meta charset="UTF-8">
+	<title>books</title>
+    <script src="https://code.jquery.com/jquery-3.4.1.min.js"></script>
+    <script>
+        //загружаем книги
+        function bookLoad(){
+            console.log('load books',$('#filter_authors').val())
+            $('#table').html('')
+            $("#nothing").hide()
+            $.getJSON("/cgi-bin/get.php",
+                {   author: $('#filter_authors').val(), 
+                    genre: $('#filter_genres').val(), 
+                    query: $('#filter_query').val() },
+                function(data){
+                console.log('books load', data)
+                if (!!data && !!data[0]){
+                $.each(data, function(key,value){
+                    console.log(key,value)
+                    $row = "<td>"+value.id+"</td><td>"+value.title+"</td>"+"<td>"+value.date+"</td>"+"<td>"+value.author+"</td>"+
+                    "<td>"+value.genre+"</td>"+"<td>"+value.description+"</td>"+"<td>"+value.image+"</td>"
+                    $('#table').append($('<tr/>').append($row))
+                })
+                }else{
+                    $("#nothing").show()
+                }
+            })
+        }
+
+        $(function(){
+        var authors = []
+        var genres = []
+        console.log('load', authors, genres)
+        //загружаем списки авторов и жанров
+        $.getJSON("/cgi-bin/get_ag.php", function(data){
+//            console.log('data', data)
+            $.each(data['authors'], function(key,value){
+//                console.log(key,value)
+                $('#authors').append($('<option/>', { value: value.id, text: value.author }))
+                $('#filter_authors').append($('<option/>', { value: value.id, text: value.author }))
+            })
+            $.each(data['genres'], function(key,value){
+                $('#genres').append($('<option/>', { value: value.id, text: value.genre }))
+                $('#filter_genres').append($('<option/>', { value: value.id, text: value.genre }))
+            })
+        })
+
+        bookLoad()
+        $('#add').hide()
+
+        //добавляем книгу
+        $('#but_upload').click(function(){
+            var fd = new FormData($("#form")[0])
+            var files = $('#file')[0].files[0]
+            fd.append('file',files)
+            console.log('post', fd, files)
+//            fd.append('title', $)
+            $.ajax({
+                url:'/cgi-bin/add.php', 
+                data: fd, 
+                method: 'POST',
+                contentType:false,
+                processData:false,
+                success: function(response){
+                    alert(response)
+                }
+            })
+        })
+
+    }); 
+    </script>
+</head>
+<body>
+    <button onclick="$('#add').hide();$('#list').show()">Список</button>
+    <button onclick="$('#add').show();$('#list').hide()">Добавить</button>
+    <div id="add">
+        добавить книгу
+        <form method="post" action="" enctype="multipart/form-data" id="form">
+            <div>
+                title:<input type="text" name="title"><br/>
+                date:<input type="datetime" name="date"><br/>    
+                author:<select name="author[]" multiple id="authors"></select><br/>
+                genre:<select name="genre[]" multiple id="genres"></select><br/>
+                description:<textarea name="description"></textarea><br/>
+                image:<input type="file" id="file" name="file" /><br/>
+                <input type="button" class="button" value="Add" id="but_upload">
+            </div>
+        </form>
+    </div>
+    <div id="list">
+        фильтры: автор:<select id="filter_authors"><option value="">любой</option></select>
+        жанр:<select id="filter_genres"><option value="">любой</option></select>
+        текст:<input id="filter_query" />
+        <button onclick="bookLoad()">Обновить</button>
+        <table>
+            <thead>
+                <th>id</th>
+                <th>title</th>
+                <th>date</th>
+                <th>author</th>
+                <th>genre</th>
+                <th>description</th>
+                <th>image</th>
+            </thead>
+            <tbody id="table">
+
+            </tbody>
+        </table>
+        <div id="nothing">
+            ничего не найдено, попробуйте изменить фильтр или, возможно, вам нужно 
+            <a href="/cgi-bin/create.php">создать базу</a>	
+        </div>        
+    </div>
+</body>
+</html>
